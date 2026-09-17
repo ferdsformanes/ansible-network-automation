@@ -1,4 +1,4 @@
-# Run an Ansible Ad Hoc Command Using an Inventory File
+# Run Your First Ansible Ad Hoc Command Using an INI-Format Inventory
 
 An Ansible inventory file allows you to store your network devices in one place instead of specifying individual IP addresses in every command.
 
