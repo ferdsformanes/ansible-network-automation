@@ -55,8 +55,8 @@ This runs the command against every device defined in the inventory.
 The inventory is organized into groups.
 
     [cisco_ios]
-    router1 ansible_host=192.168.100.24
-    router2 ansible_host=192.168.100.26
+    R1 ansible_host=192.168.100.24
+    S1 ansible_host=192.168.100.26
 
     [cisco_ios:vars]
     ansible_connection=ansible.netcommon.network_cli
