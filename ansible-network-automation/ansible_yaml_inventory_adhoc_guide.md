@@ -14,9 +14,9 @@ Add your Cisco devices:
       children:
         cisco_ios:
           hosts:
-            router1:
+            R1:
               ansible_host: 192.168.100.24
-            router2:
+            S1:
               ansible_host: 192.168.100.26
           vars:
             ansible_connection: ansible.netcommon.network_cli
