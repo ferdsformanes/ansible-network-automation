@@ -2,6 +2,8 @@
 
 A simple guide to creating and running your first Ansible playbook against Cisco IOS devices using a **YAML inventory**.
 
+Playbook - A YAML-based automation procedure that tells Ansible which network devices to target and what actions to perform on them.
+
 ## 1. Create the Inventory
 
 Create a file called:
