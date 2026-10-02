@@ -447,7 +447,7 @@ all:
 
     - name: Display command output
       ansible.builtin.debug:
-        var: output.stdout
+        var: output.stdout_lines
 ```
 
 ### Run
