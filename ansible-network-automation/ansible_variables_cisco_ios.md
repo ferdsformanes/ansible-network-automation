@@ -1,6 +1,6 @@
-# Ansible Variables Explained | Cisco IOS Playbook for Beginners
+# Ansible Variables Explained | Run Multiple Cisco IOS Commands
 
-A simple beginner-friendly guide to using **Ansible variables** with Cisco IOS.
+A simple beginner-friendly guide to using **Ansible variables** to run multiple Cisco IOS commands.
 
 This guide uses the same YAML inventory from the previous Ansible lessons.
 
@@ -55,23 +55,25 @@ Add:
 
 ```yaml
 ---
-- name: Run a Cisco IOS command using a variable
+- name: Run Cisco IOS commands using a variable
   hosts: cisco_ios
   gather_facts: false
 
+  # Variables store values that can be reused in the playbook
   vars:
-    cli_command: show clock
+    cli_commands:
+      - show clock
+      - show ip interface brief
 
   tasks:
-    - name: Run CLI command
+    - name: Run CLI commands
       cisco.ios.ios_command:
-        commands:
-          - "{{ cli_command }}"
+        commands: "{{ cli_commands }}"
       register: output
 
     - name: Display command output
       ansible.builtin.debug:
-        var: output.stdout
+        var: output.stdout_lines
 ```
 
 ---
@@ -83,174 +85,226 @@ A variable is a name that stores a value.
 For example:
 
 ```yaml
-cli_command: show clock
+cli_commands:
+  - show clock
+  - show ip interface brief
 ```
 
 Here:
 
-- `cli_command` = variable name
-- `show clock` = variable value
+```text
+cli_commands
+```
+
+is the **variable name**.
+
+The values stored in the variable are:
+
+```text
+show clock
+show ip interface brief
+```
+
+In this example, the variable stores a **list of commands**.
 
 Think of it like this:
 
 ```text
-cli_command
+cli_commands
      |
-     v
-show clock
+     +-- show clock
+     |
+     +-- show ip interface brief
 ```
-
-Instead of writing `show clock` directly inside the task, we reference the variable:
-
-```yaml
-"{{ cli_command }}"
-```
-
-Ansible replaces the variable with its value when the playbook runs.
 
 ---
 
 ## 4. The `vars` Section
 
-The `vars` section defines variables for the play:
+The `vars` section is where we define variables for the play:
 
 ```yaml
 vars:
-  cli_command: show clock
+  cli_commands:
+    - show clock
+    - show ip interface brief
 ```
 
-The variable can then be used by tasks in this play.
+The variable is named:
 
-For example:
+```text
+cli_commands
+```
+
+It contains two values.
+
+The indentation and `-` characters indicate that these values belong to a YAML list.
+
+---
+
+## 5. What Is a List Variable?
+
+A variable does not have to store just one value.
+
+For example, a variable can store a list:
 
 ```yaml
-commands:
-  - "{{ cli_command }}"
+cli_commands:
+  - show clock
+  - show ip interface brief
 ```
 
-Ansible sees:
+The `-` indicates each item in the list.
 
-```text
-{{ cli_command }}
+So this:
+
+```yaml
+cli_commands:
+  - show clock
+  - show ip interface brief
 ```
 
-and replaces it with:
+means:
 
 ```text
-show clock
+cli_commands = [
+    "show clock",
+    "show ip interface brief"
+]
 ```
 
-The Cisco device therefore receives:
+You can add more commands if needed:
 
-```text
-show clock
+```yaml
+cli_commands:
+  - show clock
+  - show version
+  - show ip interface brief
 ```
 
 ---
 
-## 5. Why Use Variables?
+## 6. Referencing the Variable
+
+The playbook references the variable using:
+
+```yaml
+"{{ cli_commands }}"
+```
+
+For example:
+
+```yaml
+commands: "{{ cli_commands }}"
+```
+
+The double curly braces tell Ansible to use the value of the variable.
+
+Ansible replaces:
+
+```yaml
+"{{ cli_commands }}"
+```
+
+with the list stored in:
+
+```yaml
+cli_commands:
+  - show clock
+  - show ip interface brief
+```
+
+The Cisco IOS module then runs both commands.
+
+---
+
+## 7. Running Multiple Commands
+
+The `cisco.ios.ios_command` task is:
+
+```yaml
+- name: Run CLI commands
+  cisco.ios.ios_command:
+    commands: "{{ cli_commands }}"
+```
+
+The `commands` parameter expects a list of Cisco IOS commands.
+
+Our variable provides that list:
+
+```yaml
+cli_commands:
+  - show clock
+  - show ip interface brief
+```
+
+This allows one task to run multiple commands.
 
 Without a variable, you could write:
 
 ```yaml
-commands:
+- name: Run CLI commands
+  cisco.ios.ios_command:
+    commands:
+      - show clock
+      - show ip interface brief
+```
+
+Using a variable separates the **data** from the **task**.
+
+---
+
+## 8. Why Use Variables?
+
+Variables make playbooks easier to reuse and modify.
+
+For example, you can change:
+
+```yaml
+cli_commands:
   - show clock
-```
-
-With a variable:
-
-```yaml
-vars:
-  cli_command: show clock
-```
-
-and:
-
-```yaml
-commands:
-  - "{{ cli_command }}"
-```
-
-The variable makes the playbook easier to reuse.
-
-For example, change:
-
-```yaml
-cli_command: show clock
+  - show ip interface brief
 ```
 
 to:
 
 ```yaml
-cli_command: show version
+cli_commands:
+  - show clock
+  - show version
+  - show ip interface brief
 ```
 
 The task does not need to change.
 
----
-
-## 6. Why Are Double Curly Braces Used?
-
-Ansible uses **Jinja2 expressions** to reference variables.
-
-For example:
+The task remains:
 
 ```yaml
-{{ cli_command }}
+- name: Run CLI commands
+  cisco.ios.ios_command:
+    commands: "{{ cli_commands }}"
 ```
 
-The double curly braces tell Ansible:
+Only the variable changes.
 
-> Get the value of this variable.
+---
 
-So:
+## 9. Add Another Command
+
+Try adding:
 
 ```yaml
-{{ cli_command }}
+- show version
 ```
 
-becomes:
-
-```text
-show clock
-```
-
-when the playbook runs.
-
----
-
-## 7. Run the Playbook
-
-Run:
-
-```bash
-ansible-playbook -i inventory.yml variables.yml
-```
-
-Ansible connects to the devices in the `cisco_ios` group and runs:
-
-```text
-show clock
-```
-
-You should see the command output in the terminal.
-
----
-
-## 8. Change the Variable
-
-Try changing:
+Your variable becomes:
 
 ```yaml
 vars:
-  cli_command: show clock
-```
-
-to:
-
-```yaml
-vars:
-  cli_command: show ip interface brief
+  cli_commands:
+    - show clock
+    - show version
+    - show ip interface brief
 ```
 
 Run the playbook again:
@@ -259,72 +313,122 @@ Run the playbook again:
 ansible-playbook -i inventory.yml variables.yml
 ```
 
-The task itself did not change.
-
-Only the variable changed.
-
-This is one of the main benefits of variables.
-
----
-
-## 9. Using an Extra Variable
-
-You can also provide a variable from the command line.
-
-For example:
-
-```bash
-ansible-playbook -i inventory.yml variables.yml -e "cli_command=show version"
-```
-
-The `-e` option means **extra variables**.
-
-This allows you to change the command without editing the playbook.
-
-For example:
-
-```bash
-ansible-playbook -i inventory.yml variables.yml -e "cli_command=show ip interface brief"
-```
+Ansible will run all three commands on the Cisco devices.
 
 ---
 
 ## 10. Understanding `register`
 
-The playbook also contains:
+The playbook contains:
 
 ```yaml
 register: output
 ```
 
-This saves the result of the task into a variable called `output`.
+This saves the result of the `ios_command` task into a variable called:
 
-Then the next task uses:
-
-```yaml
-ansible.builtin.debug:
-  var: output.stdout
-```
-
-So there are actually two variables in the playbook:
-
-```yaml
-cli_command
-```
-
-Stores the command we want to run.
-
-And:
-
-```yaml
+```text
 output
 ```
 
-Stores the result returned by the command.
+So there are two important variables in the playbook:
+
+### `cli_commands`
+
+Stores the commands we want to run:
+
+```yaml
+cli_commands:
+  - show clock
+  - show ip interface brief
+```
+
+### `output`
+
+Stores the result returned by the task:
+
+```yaml
+register: output
+```
 
 ---
 
-## 11. How Everything Works
+## 11. Understanding `stdout_lines`
+
+The final task is:
+
+```yaml
+- name: Display command output
+  ansible.builtin.debug:
+    var: output.stdout_lines
+```
+
+`output.stdout_lines` contains the command output organized into lines.
+
+Using:
+
+```yaml
+output.stdout_lines
+```
+
+usually makes the output easier to read than displaying the raw `stdout` value.
+
+For example, the result is organized roughly like:
+
+```text
+Command 1 output:
+show clock
+...
+
+Command 2 output:
+show ip interface brief
+...
+```
+
+---
+
+## 12. Why Use `stdout_lines` Instead of `stdout`?
+
+You can display:
+
+```yaml
+var: output.stdout
+```
+
+but `stdout_lines` is often cleaner for CLI output.
+
+For network automation, this is useful when you're working with commands such as:
+
+```text
+show clock
+show version
+show ip interface brief
+```
+
+and want the output displayed in a readable line-by-line format.
+
+---
+
+## 13. Run the Playbook
+
+Run:
+
+```bash
+ansible-playbook -i inventory.yml variables.yml
+```
+
+Ansible will:
+
+1. Read the inventory.
+2. Find the devices in `cisco_ios`.
+3. Read the `cli_commands` variable.
+4. Run the commands using `cisco.ios.ios_command`.
+5. Store the results in `output`.
+6. Display `output.stdout_lines`.
+
+---
+
+## 14. How Everything Works
 
 The overall flow is:
 
@@ -335,24 +439,29 @@ inventory.yml
      v
 variables.yml
      |
-     | cli_command = show clock
-     v
-{{ cli_command }}
+     | cli_commands
      |
-     | Becomes "show clock"
+     +-- show clock
+     |
+     +-- show ip interface brief
+     |
+     v
+{{ cli_commands }}
+     |
+     | Provides the list of commands
      v
 cisco.ios.ios_command
      |
      | SSH
      v
-Cisco IOS device
+Cisco IOS devices
      |
-     | Returns output
+     | Returns command output
      v
 register: output
      |
      v
-output.stdout
+output.stdout_lines
      |
      v
 Display output
@@ -360,53 +469,7 @@ Display output
 
 ---
 
-## 12. Key Takeaways
-
-### Variable
-
-A variable stores a value:
-
-```yaml
-cli_command: show clock
-```
-
-### Variable reference
-
-Use double curly braces to reference a variable:
-
-```yaml
-"{{ cli_command }}"
-```
-
-### `vars`
-
-Defines variables for the play:
-
-```yaml
-vars:
-  cli_command: show clock
-```
-
-### `register`
-
-Stores the result of a task:
-
-```yaml
-register: output
-```
-
-### `debug`
-
-Displays information:
-
-```yaml
-ansible.builtin.debug:
-  var: output.stdout
-```
-
----
-
-## 13. Complete Example
+## 15. Complete Example
 
 ### inventory.yml
 
@@ -431,18 +494,20 @@ all:
 
 ```yaml
 ---
-- name: Run a Cisco IOS command using a variable
+- name: Run Cisco IOS commands using a variable
   hosts: cisco_ios
   gather_facts: false
 
+  # Variables store values that can be reused in the playbook
   vars:
-    cli_command: show clock
+    cli_commands:
+      - show clock
+      - show ip interface brief
 
   tasks:
-    - name: Run CLI command
+    - name: Run CLI commands
       cisco.ios.ios_command:
-        commands:
-          - "{{ cli_command }}"
+        commands: "{{ cli_commands }}"
       register: output
 
     - name: Display command output
@@ -458,16 +523,66 @@ ansible-playbook -i inventory.yml variables.yml
 
 ---
 
-## What's Next?
+## 16. Key Takeaways
 
-A natural next step is using a **list variable** to store multiple Cisco commands:
+### Variable
+
+A variable stores a value:
+
+```yaml
+cli_commands:
+  - show clock
+  - show ip interface brief
+```
+
+### List
+
+The `-` creates items in a YAML list:
+
+```yaml
+- show clock
+- show ip interface brief
+```
+
+### Variable reference
+
+Use double curly braces to reference a variable:
+
+```yaml
+"{{ cli_commands }}"
+```
+
+### `vars`
+
+Defines variables for the play:
 
 ```yaml
 vars:
   cli_commands:
     - show clock
-    - show version
     - show ip interface brief
 ```
 
-This lets you run several commands while keeping the playbook simple.
+### `register`
+
+Stores the result of a task:
+
+```yaml
+register: output
+```
+
+### `stdout_lines`
+
+Displays the command output line by line:
+
+```yaml
+var: output.stdout_lines
+```
+
+---
+
+## What's Next?
+
+A natural next step is learning about **Ansible variable types**, such as strings, lists, and dictionaries.
+
+You can then use more structured variables to make your network automation playbooks more flexible and reusable.
